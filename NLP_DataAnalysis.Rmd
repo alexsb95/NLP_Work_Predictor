@@ -1,0 +1,202 @@
+---
+title: "Word Prediction Analysis"
+author: "Alexander Sanchez"
+date: "3/7/2020"
+output: html_document
+---
+
+## Context
+Around the world, people are spending an increasing amount of time on their mobile devices for email, social networking, banking and a whole range of other activities. But typing on mobile devices can be a serious pain. Smart keyboard makes it easier for people to type on their mobile devices. The idea is using NPL to create a shiny app that when you type in, presents three options for what the next word might be. 
+
+
+## Data exploration
+
+We take 3 files that contain sentences in English from the following sources:
+
+* Twitter
+* Blogs
+* News
+
+
+```{r dataLoad, include=FALSE}
+library(ggplot2)
+library(plotly)
+library(NLP)
+library(tm)
+library(SnowballC)
+library(RColorBrewer)
+library(wordcloud)
+
+
+setwd("~/Coursera/Data Science/Data Science Capstone")
+
+twitterCon <- file("en_US.twitter.txt", "r") 
+newsCon <- file("en_US.news.txt", "r")
+blogsCon <- file("en_US.blogs.txt", "r") 
+
+twitterText <- readLines(twitterCon, skipNul=T) 
+newsText <- readLines(newsCon, skipNul=T) 
+blogsText <- readLines(blogsCon, skipNul=T) 
+
+close(twitterCon)
+close(newsCon)
+close(blogsCon)
+```
+
+
+We take a look to the files loaded:
+
+```{r dataLength, echo=FALSE}
+
+twitterLng <- length(twitterText)
+twitterCnt <- sapply(twitterText, nchar)
+twitterLongest <- max(twitterCnt)
+
+newsLng <- length(newsText)
+newsCnt <- sapply(newsText, nchar)
+newsLongest <- max(newsCnt)
+
+blogsLng <- length(blogsText)
+blogsCnt <- sapply(blogsText, nchar)
+blogsLongest <- max(blogsCnt)
+
+dataFacts <- data.frame("Length" = c(twitterLng,newsLng,blogsLng), "Longest_line" = c(twitterLongest,newsLongest,blogsLongest))
+row.names(dataFacts) <- c("Twitter","News","Blogs")
+dataFacts
+```
+
+## Data Pre-processing
+
+We merge the 3 files content, then use a binomial distribution to extract randomly 0.1% of the data as a sample to make the data analysis lighter and faster
+
+```{r sample}
+textList <- c(twitterText, newsText, blogsText)
+
+set.seed(1345)
+index <- rbinom(n = length(textList), size = 1, prob = 0.001)
+textList <- textList[as.logical(index)]
+```
+
+Then we remove foreign character from the text to avoid problems on the analysis, also apply a profanity filter, because we don't want to predict any curse words; The list of profanity word were extract from the  [Carnegie Mellon Unversity](https://www.cs.cmu.edu/~biglou/resources/) web page.
+
+
+```{r revProfanity_ASCII}
+textList <- iconv(textList, "latin1", "ASCII//TRANSLIT") # Remove foreing characters
+
+profanity <- readLines("bad-words.txt")
+text_clean <- unlist(lapply(textList, function(i) removeWords(i, profanity))) # Profanity filter
+```
+
+We create a corpus with the words left, then we perform more cleaning:
+
+* Remove numbers
+* Covert all characters to lower case
+* Remove punctuation
+* Trim the words
+
+We didn't remove stop words, because we need to predict them as well.
+
+```{r tokenization}
+textCorpus <- VCorpus(VectorSource(text_clean))
+
+textCorpus_clean <- tm_map(textCorpus,removeNumbers) #removing numbers
+textCorpus_clean <- tm_map(textCorpus_clean,content_transformer(tolower)) #converting to lower case letters
+textCorpus_clean <- tm_map(textCorpus_clean,removePunctuation) #remving punctuation
+
+textCorpus_clean <- tm_map(textCorpus_clean,stripWhitespace)
+```
+
+## N-gram model
+
+We are going tokenize the sentences to create one-gram, bi-gram and tri-gram with that we are going to look at 3 things:
+
+* Matrix with the top 10 n-grams
+* The distribution of the n-grams 
+* Wordcloud of n-grams classified with colors.
+
+### One-Gram
+
+Top 10 one-grams
+
+```{r oneGrmFeq}
+text_tdm <- TermDocumentMatrix(textCorpus_clean) #Tokenization
+
+word_matrix <- sort(rowSums(as.matrix(text_tdm)),decreasing=TRUE) #Order the the words
+wordFreq <- data.frame(word = names(word_matrix),freq=word_matrix)
+rownames(wordFreq) <- NULL
+
+head(wordFreq,10) #Top 10 of frecuent word
+```
+
+The distribution of all the words.
+
+```{r oneGrmDist}
+plot_ly(x = ~wordFreq$freq, type = "histogram") # Distribution of the word freq
+```
+
+Wordcould of 200 words with a minimum frequency of 24.
+
+```{r oneGrmCld}
+wordcloud(wordFreq$word, wordFreq$freq, max.words=200, min.freq = 24, colors=brewer.pal(8, "Dark2")) #Wordcloud
+```
+
+### Bi-Gram
+
+Top 10 bi-grams
+
+```{r biGrmFeq}
+BigramTokenizer <-
+    function(x)
+        unlist(lapply(ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE) # Get the bi-gram
+
+text_tdm2 <- TermDocumentMatrix(textCorpus_clean, control = list(tokenize = BigramTokenizer)) #Tokenization
+
+word_matrix2 <- sort(rowSums(as.matrix(text_tdm2)),decreasing=TRUE)
+wordFreq2 <- data.frame(word = names(word_matrix2),freq=word_matrix2)
+rownames(wordFreq2) <- NULL
+head(wordFreq2,10)
+```
+
+The distribution of all the bi-gram
+
+```{r biGrmDist}
+plot_ly(x = ~wordFreq2$freq, type = "histogram") # Distribution of the word freq
+```
+
+Wordcould of 50 bi-gram with a minimum frequency of 20
+
+```{r biGrmCld}
+wordcloud(wordFreq2$word, wordFreq2$freq, max.words=50, min.freq = 20, colors=brewer.pal(8, "Dark2")) #Wordcloud
+```
+
+
+### Tri-Gram
+
+Top 10 tri-grams
+
+```{r triGrmFeq}
+TrigramTokenizer <-
+    function(x)
+        unlist(lapply(ngrams(words(x), 3), paste, collapse = " "), use.names = FALSE) # Get the tri-gram
+
+text_tdm3 <- TermDocumentMatrix(textCorpus_clean, control = list(tokenize = TrigramTokenizer))  #Tokenization
+
+word_matrix3 <- sort(rowSums(as.matrix(text_tdm3)),decreasing=TRUE)
+wordFreq3 <- data.frame(word = names(word_matrix3),freq=word_matrix3)
+rownames(wordFreq3) <- NULL
+head(wordFreq3,10)
+```
+
+The distribution of all the tri-gram
+
+```{r triGrmDist}
+plot_ly(x = ~wordFreq3$freq, type = "histogram") # Distribution of the word freq
+```
+
+Wordcould of 20 tri-gram with a minimum frequency of 4
+
+```{r triGrmCld}
+wordcloud(wordFreq3$word, wordFreq3$freq, max.words=15, min.freq = 4, colors=brewer.pal(8, "Dark2")) #Wordcloud
+```
+
+
