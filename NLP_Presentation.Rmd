@@ -11,26 +11,26 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Machine Learning on our lifes
 
-Machine Learning (ML) is everywhere, when you use Netflix and they show you recomended movies or when you use Google translate.
+Machine Learning (ML) is everywhere, when you use Netflix and they show you recommended movies or when you use Google translate.
 
-One child of ML is the Natural Language Processing (NLP), this bracnch is used when you type in on the Google search bar or when you type on your smartphone keyboard.
+One child of ML is the Natural Language Processing (NLP), this branch is used when you type in on the Google search bar or when you type on your smartphone keyboard.
 
-NLP give us many benefits that we dodn't even realize.
+NLP give us many benefits that we don't even realize.
 
 ## Word Predictor
 
-On this project we bluid an NLP model that tries to predict the next word, this solution use the following concepts: 
+On this project we build an NLP model that tries to predict the next word, this solution use the following concepts: 
 
 - N-Gram
 - Markov Chains
 - Maximum Likelihood Estimation
-- Good-Turning Frencuency
+- Good-Turing Smoothing
 
 ## N-Gram
 
-Es a secuence of letters or word, they are named accordingly the number of elements.
+Is a Sequence of letters or word, they are named accordingly the number of elements.
 
-For example we have this sentence: Thank you so much for your help. Let's apply diferent n-grams to the sentence 
+For example we have this sentence: Thank you so much for your help. Let's apply different n-grams to the sentence 
 
 - Unigram : 'Thank','you','so','much','for','your','help'
 - Bigram : 'Thank you', 'you so','so much','much for','for your','your help'
@@ -40,7 +40,7 @@ For example we have this sentence: Thank you so much for your help. Let's apply 
 ## Markov Chains
 
 
-Are basically graphs, that have a state (word) and the links with the probablily for the next word.
+Are basically graphs, that have a state (word) and the links with the probability for the next word.
 
 ![Markov Chain](MarkovChain.png)
 
@@ -54,7 +54,7 @@ We use the Markov Assumption, this means:
 
 ![MLE Formula](MLE_Formula.PNG)
 
-As a example we calculate the probability of Unigrams using MLE:
+As an example we calculate the probability of Unigrams using MLE:
 
 P(Thank you so much for your help)
  
@@ -68,25 +68,44 @@ Takes in consideration the probability of the unseen elements.
 
 ![GT](GoodTurning.PNG)
 
+## How does the algorithm works
+
+Steps:
+
+<ul type="1">
+  <li>Read the 3 files</li>
+  <li>Take a sample for the training and test set</li>
+  <li>Clean the text:
+        <ul>
+                <li>Remove punctuation and number</li>
+                <li>Apply lowercase to all words</li>
+                <li>Remove unnecessary spaces</li>
+        </ul>
+  </li>
+  <li>Create the bi-grams, tri-grams and four-grams</li>
+  <li>Calculate the n-grams probability with MLE and GT</li>
+</ul> 
+
+
 ## Performance
 
 We have 3,336,695 lines from tweets, blog and news using that we sample randomly 33,274 (0.1%) lines in total. 
 
-Of the sample we use 60% for the trainig the model and 40% for testing.
+Of the sample we use 60% for the training the model and 40% for testing.
 
-The testing accuracy was X %.
+The testing accuracy was 80%.
 
 ## How to use the app
 
 Steps:
 
  - Write text on the input located on the top right. 
- - Presss the predict button.
+ - Press the predict button.
 
 Output: 
 
  - Displays 3 predictions.
- - Graph with the top 10 words with the higher probaility.
+ - Graph with the top 10 words with the higher probability.
  - Text inserted on top right.
 
 ## Links
